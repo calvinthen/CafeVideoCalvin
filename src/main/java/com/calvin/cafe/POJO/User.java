@@ -22,6 +22,9 @@ public class User implements Serializable {
     @Column(name = "id")
     private Integer id;
 
+    @Column(name = "enabled")
+    private boolean enabled;
+
     @Column(name = "name")
     private String name;
 

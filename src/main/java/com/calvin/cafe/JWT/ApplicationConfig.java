@@ -33,13 +33,13 @@ public class ApplicationConfig {
 
         // define query to retrieve a user by username
         jdbcUserDetailsManager.setUsersByUsernameQuery(
-                "select id, password, enabled from users where id=?");
+                "select email, password, enabled from user where email=?");
 
         // define query to retrieve the authorities/roles by username
         jdbcUserDetailsManager.setAuthoritiesByUsernameQuery(
                 "select am.user_id, am.auth_id from auth_authority_member as am " +
-                        " join users u on u.id = am.user_id " +
-                        " where u.id=? ");
+                        " join user u on u.email = am.user_id " +
+                        " where u.email=? ");
 
         return jdbcUserDetailsManager;
     }

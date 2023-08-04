@@ -1,9 +1,11 @@
 package com.calvin.cafe.serviceImpl;
 
-import com.calvin.cafe.JWT.CustomerUserDetailsService;
+//import com.calvin.cafe.JWT.CustomerUserDetailsService;
 import com.calvin.cafe.JWT.JwtService;
+import com.calvin.cafe.POJO.AuthAuthorityMember;
 import com.calvin.cafe.POJO.User;
 import com.calvin.cafe.constents.CafeConstants;
+import com.calvin.cafe.dao.AuthAuthorityMemberDao;
 import com.calvin.cafe.dao.UserDao;
 import com.calvin.cafe.service.UserService;
 import com.calvin.cafe.utils.CafeUtils;
@@ -15,6 +17,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -28,13 +33,25 @@ public class UserServiceImpl implements UserService {
     UserDao userDao;
 
     @Autowired
+    AuthAuthorityMemberDao authAuthorityMemberDao;
+
+    @Autowired
     AuthenticationManager authenticationManager;
+
+//    @Autowired
+//    CustomerUserDetailsService customerUserDetailsService;
+
+    @Autowired
+    UserDetailsManager userDetailsManager;
 
     @Autowired
     JwtService jwtService;
 
     @Autowired
-    CustomerUserDetailsService customerUserDetailsService;
+    PasswordEncoder passwordEncoder;
+
+//    @Autowired
+//    CustomerUserDetailsService customerUserDetailsService;
 
     @Override
     public ResponseEntity<String> signUp(Map<String, String> requestMap) {
@@ -44,6 +61,17 @@ public class UserServiceImpl implements UserService {
                 User user = userDao.findByEmailId(requestMap.get("email"));
                 if(Objects.isNull(user))
                 {
+                    Map<String,String> authAuthorityMemberMap =  null;
+
+                    authAuthorityMemberMap.put("user_id",requestMap.get("email"));
+                    authAuthorityMemberMap.put("auth_id","user");
+
+                    System.out.println("inside auth authority member map : " + authAuthorityMemberMap);
+
+                    String passwordEncode = passwordEncoder.encode(requestMap.get("password"));
+                    requestMap.put("password",passwordEncode);
+
+                    authAuthorityMemberDao.save(getAuthAuthorityMemberFromMap(authAuthorityMemberMap));
                     userDao.save(getUserFromMap(requestMap));
                     return CafeUtils.getResponseEntity(CafeConstants.SUCCESS_REGISTERED,HttpStatus.OK);
                 }
@@ -85,59 +113,67 @@ public class UserServiceImpl implements UserService {
         return user;
     }
 
+    private AuthAuthorityMember getAuthAuthorityMemberFromMap(Map<String,String> requestMap)
+    {
+        AuthAuthorityMember authAuthorityMember = new AuthAuthorityMember();
+        authAuthorityMember.setUser_id(requestMap.get("user_id"));
+        authAuthorityMember.setAuth_id(requestMap.get("auth_id"));
+        return authAuthorityMember;
+    }
+
     @Override
     public ResponseEntity<String> login(Map<String, String> requestMap) {
         log.info("Inside login");
 
+        User user = userDao.findByEmailId(requestMap.get("email"));
+
         try {
-            System.out.println(requestMap.get("email"));
-            User user = new User();
-            user = userDao.findByEmailId(requestMap.get("email"));
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(user.getEmail(),requestMap.get("password"))
+            );
+            if (authentication.isAuthenticated()) {
 
-            if (user == null) {
-                System.out.println("MASUK");
-                return new ResponseEntity<String>("{\"message\":\"" + "Account doesn't exist." + "\"}",HttpStatus.NOT_FOUND);
+                System.out.println("masuk");
+                UserDetails userDetails = userDetailsManager.loadUserByUsername(user.getEmail());
 
-            }else if(user.getStatus().equalsIgnoreCase("true"))
-            {
-                return new ResponseEntity<String>("{\"token\":\"" + jwtService.generateToken2(user.getEmail(),user.getRole()) + "\"}",
+                return new ResponseEntity<String>("{\"token\":\"" + jwtService.generateToken(
+                        userDetails) + "\"}",
                         HttpStatus.OK);
+
             }
 
-        }catch (Exception ex)
-        {
-            ex.printStackTrace();
-            return new ResponseEntity<String>("{\"message\":\"" + "Account doesn't exist." + "\"}",HttpStatus.NOT_FOUND);
+        }catch (Exception ex){
+            log.error("{}",ex);
         }
-
 
 
         return new ResponseEntity<String>("{\"message\":\"" + "Bad Credentials." + "\"}",HttpStatus.BAD_REQUEST);
     }
 
-    //        if(user.getEmail() == null)
-//        {
+//            if(user.getEmail() == null)
+//    {
+//        return new ResponseEntity<String>("{\"message\":\"" + "Account doesn't exist." + "\"}",HttpStatus.NOT_FOUND);
+//    }
+//    try {
+//        System.out.println(requestMap.get("email"));
+//        User user = new User();
+//        user = userDao.findByEmailId(requestMap.get("email"));
+//
+//        if (user == null) {
+//            System.out.println("MASUK");
 //            return new ResponseEntity<String>("{\"message\":\"" + "Account doesn't exist." + "\"}",HttpStatus.NOT_FOUND);
+//
+//        }else if(user.getStatus().equalsIgnoreCase("true"))
+//        {
+//            return new ResponseEntity<String>("{\"token\":\"" + jwtService.generateToken2(user.getEmail(),user.getRole()) + "\"}",
+//                    HttpStatus.OK);
 //        }
+//
+//    }catch (Exception ex)
+//    {
+//        ex.printStackTrace();
+//        return new ResponseEntity<String>("{\"message\":\"" + "Account doesn't exist." + "\"}",HttpStatus.NOT_FOUND);
+//    }
 
-//        try {
-//            Authentication authentication = authenticationManager.authenticate(
-//                    new UsernamePasswordAuthenticationToken(requestMap.get("email"),requestMap.get("password"))
-//            );
-//            if (authentication.isAuthenticated()) {
-//
-//
-//            if (customerUserDetailsService.getUserDetail().getStatus().equalsIgnoreCase("true")){
-//                return new ResponseEntity<String>("{\"token\":\"" + jwtService.generateToken2(customerUserDetailsService
-//                        .getUserDetail().getEmail(),customerUserDetailsService.getUserDetail().getRole()) + "\"}",
-//                        HttpStatus.OK);
-//            }else
-//            {
-//                return new ResponseEntity<String>("{\"message\":\"" + "Wait for admin approval." + "\"}",HttpStatus.BAD_REQUEST);
-//            }
-//            }
-//
-//        }catch (Exception ex){
-//            log.error("{}",ex);
-//        }
+
 }
