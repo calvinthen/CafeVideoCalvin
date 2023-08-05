@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -61,7 +62,7 @@ public class UserServiceImpl implements UserService {
                 User user = userDao.findByEmailId(requestMap.get("email"));
                 if(Objects.isNull(user))
                 {
-                    Map<String,String> authAuthorityMemberMap =  null;
+                    Map<String,String> authAuthorityMemberMap =  new HashMap<>();
 
                     authAuthorityMemberMap.put("user_id",requestMap.get("email"));
                     authAuthorityMemberMap.put("auth_id","user");
@@ -133,7 +134,6 @@ public class UserServiceImpl implements UserService {
             );
             if (authentication.isAuthenticated()) {
 
-                System.out.println("masuk");
                 UserDetails userDetails = userDetailsManager.loadUserByUsername(user.getEmail());
 
                 return new ResponseEntity<String>("{\"token\":\"" + jwtService.generateToken(
@@ -150,30 +150,6 @@ public class UserServiceImpl implements UserService {
         return new ResponseEntity<String>("{\"message\":\"" + "Bad Credentials." + "\"}",HttpStatus.BAD_REQUEST);
     }
 
-//            if(user.getEmail() == null)
-//    {
-//        return new ResponseEntity<String>("{\"message\":\"" + "Account doesn't exist." + "\"}",HttpStatus.NOT_FOUND);
-//    }
-//    try {
-//        System.out.println(requestMap.get("email"));
-//        User user = new User();
-//        user = userDao.findByEmailId(requestMap.get("email"));
-//
-//        if (user == null) {
-//            System.out.println("MASUK");
-//            return new ResponseEntity<String>("{\"message\":\"" + "Account doesn't exist." + "\"}",HttpStatus.NOT_FOUND);
-//
-//        }else if(user.getStatus().equalsIgnoreCase("true"))
-//        {
-//            return new ResponseEntity<String>("{\"token\":\"" + jwtService.generateToken2(user.getEmail(),user.getRole()) + "\"}",
-//                    HttpStatus.OK);
-//        }
-//
-//    }catch (Exception ex)
-//    {
-//        ex.printStackTrace();
-//        return new ResponseEntity<String>("{\"message\":\"" + "Account doesn't exist." + "\"}",HttpStatus.NOT_FOUND);
-//    }
 
 
 }
